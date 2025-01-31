@@ -1,2 +1,2 @@
-# bike-elow-estimate
+# bike-flow-estimate
 Code Repository for Master's Thesis by Christian Hugo Rasmussen &amp; Manuel Knepper. 
