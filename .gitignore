@@ -9,6 +9,7 @@ __pycache__/
 # C extensions
 *.so
 
+notebooks/cache/
 # Distribution / packaging
 .Python
 build/
