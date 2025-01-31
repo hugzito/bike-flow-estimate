@@ -1,3 +1,6 @@
+# Data (should only be pushed to lfs)
+data/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
