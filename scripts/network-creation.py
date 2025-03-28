@@ -315,8 +315,8 @@ else:
             f.write(f'features: {' '.join(features)}\n')
             f.write(f'expand_features: {' '.join(expand_features)}\n')
             f.write(f'distance: {dist}\n')
+linegraph.graph = num_folder
 
 # Save the line graph in the determined folder
 with open(f'../data/graphs/{num_folder}/linegraph_tg.pkl', 'wb') as f:
-    linegraph.graph = num_folder
     pickle.dump(linegraph, f)
