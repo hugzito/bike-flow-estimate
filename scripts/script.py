@@ -1,152 +1,171 @@
-import os, torch
-from sklearn.model_selection import train_test_split
+import os
 import pickle
-import torch_geometric.transforms as T
-import numpy as np
-from torch_geometric.nn.models import Node2Vec
-from torch_geometric.data import DataLoader
-from torch_geometric.nn import MessagePassing
-from torch_geometric.data import Data
-from torch.nn import Linear
+import torch
 import torch.nn.functional as F
+import numpy as np
+from sklearn.model_selection import train_test_split
+from torch.nn import Linear
+from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv, GATConv
 import wandb
 
-epochs = int(os.getenv("EPOCHS", 10))  # Default to 10 if not provided
-learning_rate = float(os.getenv("LEARNING_RATE", 0.001))  # Default to 0.001
-hidden_c = int(os.getenv("HIDDEN_C", 16))  # Default to 16
-random_seed = int(os.getenv("RANDOM_SEED", 42))  # Default to 42
-bins = [int(i) for i in os.getenv("BINS", "1000 5000 10000").split(' ')]  # Default to [1000, 3000, 5000]
-num_layers = int(os.getenv("NUM_LAYERS", 5))  # Default to 5
+# --- Configurations ---
+epochs = int(os.getenv("EPOCHS", 10))
+learning_rate = float(os.getenv("LEARNING_RATE", 0.001))
+hidden_c = int(os.getenv("HIDDEN_C", 16))
+random_seed = int(os.getenv("RANDOM_SEED", 42))
+bins = [int(i) for i in os.getenv("BINS", "1000 5000 10000").split()]
+num_layers = int(os.getenv("NUM_LAYERS", 5))
 nh = int(os.getenv("NUM_HEADS", 10))
-gat = int(os.getenv("GAT", 0))
+use_gat = bool(int(os.getenv("GAT", 0)))
 api_key = os.getenv("API_KEY", None)
 graph_num = os.getenv("GRAPH_NUM", 2)
 dropout_p = float(os.getenv("DROPOUT", 0.5))
 
+# --- WandB Initialization ---
 wandb.login(key=api_key)
+run = wandb.init(
+    project="Thesis-project",
+    entity="christian-hugo-rasmussen-it-universitetet-i-k-benhavn",
+    config={
+        "epochs": epochs,
+        "learning_rate": learning_rate,
+        "hidden_c": hidden_c,
+        "random_seed": random_seed,
+        "bins": bins,
+        "num_layers": num_layers,
+        "num_heads": nh,
+        "gat": use_gat,
+        "graph_num": graph_num,
+        "dropout": dropout_p
+    },
+    settings=wandb.Settings(init_timeout=300)
+)
 
-run = wandb.init(project="Thesis-project", entity="christian-hugo-rasmussen-it-universitetet-i-k-benhavn", config={
-    "epochs": epochs,
-    "learning_rate": learning_rate,
-    "hidden_c": hidden_c,
-    "random_seed": random_seed,
-    "bins": bins,
-    "num_layers": num_layers,
-    'num_heads' : nh,
-    "gat" : gat, 
-    "graph_num" : graph_num, 
-    "dropout" : dropout_p}, 
-    settings=wandb.Settings(init_timeout=300))
-# Check for CUDA availability and set device
-if torch.cuda.is_available():
-    device = torch.device('cuda')
-    print(f"Using CUDA device: {torch.cuda.get_device_name(0)}", flush = True)
-else:
-    device = torch.device('cpu')
-    print("Using CPU", flush = True)
+# --- Device Setup ---
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+print(f"Using {device}: {torch.cuda.get_device_name(0) if device.type == 'cuda' else 'CPU'}", flush=True)
 
 bins = torch.tensor(bins, device=device)
 
-### load graph data
-
+# --- Load Graph Data ---
 with open(f'data/graphs/{graph_num}/linegraph_tg.pkl', 'rb') as f:
     data = pickle.load(f)
-
-def stratified_split(data, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15):
-    """Splits data into train, validation, and test sets, stratifying by y > 0."""
-
-    # Create a boolean mask for nodes where y > 0
-    positive_mask = data.y > 0
-
-    # Get indices of positive and negative nodes
-    positive_indices = positive_mask.nonzero(as_tuple=False).squeeze()
-    negative_indices = (~positive_mask).nonzero(as_tuple=False).squeeze()
-
-    # Split positive indices
-    pos_train_idx, pos_temp_idx = train_test_split(positive_indices, train_size=train_ratio, random_state=random_seed)  # Adjust random_state for consistent splits
-    pos_val_idx, pos_test_idx = train_test_split(pos_temp_idx, test_size=(test_ratio / (val_ratio + test_ratio)), random_state=random_seed)
-
-    # Split negative indices
-    neg_train_idx, neg_temp_idx = train_test_split(negative_indices, train_size=train_ratio, random_state=random_seed)
-    neg_val_idx, neg_test_idx = train_test_split(neg_temp_idx, test_size=(test_ratio / (val_ratio + test_ratio)), random_state=random_seed)
-
-    # Combine indices
-    train_idx = torch.cat([pos_train_idx, neg_train_idx])
-    val_idx = torch.cat([pos_val_idx, neg_val_idx])
-    test_idx = torch.cat([pos_test_idx, neg_test_idx])
-
-    # Create masks
-    train_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
-    val_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
-    test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
-
-    train_mask[train_idx] = True
-    val_mask[val_idx] = True
-    test_mask[test_idx] = True
-
-    data.train_mask = train_mask
-    data.val_mask = val_mask
-    data.test_mask = test_mask
-
-    return data
 
 data.edge_index = data.edge_index.contiguous()
 data.x = data.x.contiguous()
 data.y = data.y.contiguous()
+print(data.x.shape, data.edge_index.shape, data.y.shape, flush=True)
+
+# --- Data Split ---
+def stratified_split(data, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15):
+    positive_mask = data.y > 0
+    positive_indices = positive_mask.nonzero(as_tuple=False).squeeze()
+    negative_indices = (~positive_mask).nonzero(as_tuple=False).squeeze()
+
+    pos_train, pos_temp = train_test_split(positive_indices, train_size=train_ratio, random_state=random_seed)
+    pos_val, pos_test = train_test_split(pos_temp, test_size=test_ratio / (val_ratio + test_ratio), random_state=random_seed)
+
+    neg_train, neg_temp = train_test_split(negative_indices, train_size=train_ratio, random_state=random_seed)
+    neg_val, neg_test = train_test_split(neg_temp, test_size=test_ratio / (val_ratio + test_ratio), random_state=random_seed)
+
+    train_idx = torch.cat([pos_train, neg_train])
+    val_idx = torch.cat([pos_val, neg_val])
+    test_idx = torch.cat([pos_test, neg_test])
+
+    data.train_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+    data.val_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+    data.test_mask = torch.zeros(data.num_nodes, dtype=torch.bool)
+
+    data.train_mask[train_idx] = True
+    data.val_mask[val_idx] = True
+    data.test_mask[test_idx] = True
+
+    return data
+
+def stratified_kfold_split(data, num_folds=5):
+    """Generates K stratified folds based on whether y > 0."""
+
+    from sklearn.model_selection import StratifiedKFold
+
+    positive_mask = data.y > 0
+    labels = positive_mask.long().cpu().numpy()  # Labels: 1 for positive, 0 for negative
+    indices = np.arange(data.num_nodes)
+
+    skf = StratifiedKFold(n_splits=num_folds, shuffle=True, random_state=random_seed)
+
+    folds = []
+
+    for train_idx, val_idx in skf.split(indices, labels):
+        fold = {}
+        fold['train_mask'] = torch.zeros(data.num_nodes, dtype=torch.bool)
+        fold['val_mask'] = torch.zeros(data.num_nodes, dtype=torch.bool)
+
+        fold['train_mask'][train_idx] = True
+        fold['val_mask'][val_idx] = True
+
+        folds.append(fold)
+
+    return folds
 
 data = stratified_split(data)
+
+# --- Model Definitions ---
 class GCN(torch.nn.Module):
-    def __init__(self, hidden_channels):
+    def __init__(self, hidden_channels, num_layers):
         super().__init__()
         torch.manual_seed(random_seed)
-        self.conv1 = GCNConv(data.num_features, hidden_channels, improved = True, cached = True)
-        conv2_list = []
-        hc = hidden_channels
+
+        self.input_layer = GCNConv(data.num_features, hidden_channels, improved=True, cached=True)
+
+        # Create intermediate hidden layers (optional)
+        self.hidden_layers = torch.nn.ModuleList()
         for _ in range(num_layers):
-            conv2_list.append(
-                GCNConv(hc, hc//2)
-            )
-            hc //= 2
-        self.conv2 = torch.nn.ModuleList(conv2_list)
-        self.conv3 = GCNConv(hc, len(bins) + 1, cached = True)
+            self.hidden_layers.append(GCNConv(hidden_channels, hidden_channels, improved=True, cached=True))
+
+        self.output_layer = GCNConv(hidden_channels, len(bins) + 1, cached=True)
 
     def forward(self, x, edge_index):
-        x = self.conv1(x, edge_index)
+        x = self.input_layer(x, edge_index)
         x = F.relu(x)
         x = F.dropout(x, p=dropout_p, training=self.training)
-        for conv in self.conv2:
-            x = conv(x, edge_index)
+
+        for layer in self.hidden_layers:
+            x = layer(x, edge_index)
             x = F.relu(x)
             x = F.dropout(x, p=dropout_p, training=self.training)
-        x = self.conv3(x, edge_index)
+
+        x = self.output_layer(x, edge_index)
         return x
 
-class mygat(torch.nn.Module):
-    def __init__(self, hidden_channels, num_heads):
+
+class GAT(torch.nn.Module):
+    def __init__(self,hidden_channels, num_layers, num_heads):
         super().__init__()
-        torch.manual_seed(random_seed)
-        gat_list = []
+        torch.manual_seed(42)  # Replace with your desired seed
+
+        self.convs = torch.nn.ModuleList()
+
+        # Input layer
+        self.convs.append(GATConv(data.num_features, hidden_channels, heads=num_heads, concat=True))
+
+        # Hidden layers
         for _ in range(num_layers):
-            if _ == num_layers-1:
-                layer = GATConv(-1, len(bins)+1, num_heads)
-            else:
-                layer = GATConv(-1, hidden_channels, num_heads)
-            gat_list.append(layer)
-        self.gat1 = torch.nn.ModuleList(gat_list)
+            self.convs.append(GATConv(hidden_channels * num_heads, hidden_channels, heads=num_heads, concat=True))
+
+        # Output layer
+        self.convs.append(GATConv(hidden_channels * num_heads, len(bins) + 1, heads=1, concat=False))
 
     def forward(self, x, edge_index):
-        for gat in self.gat1:
-            x = gat(x, edge_index)
-            x = F.relu(x)
-            x = F.dropout(x, p=dropout_p, training=self.training)
+        for conv in self.convs[:-1]:
+            x = conv(x, edge_index)
+            x = F.elu(x)
+            x = F.dropout(x, p=0.5, training=self.training)  # Adjust dropout probability as needed
+
+        x = self.convs[-1](x, edge_index)
         return x
-
-
-if gat==1:
-    model = mygat(hidden_channels=hidden_c, num_heads=nh).to(device)
-else:
-    model = GCN(hidden_channels=hidden_c).to(device) # Move model to device
+# --- Model Instantiation ---
+model = GAT(hidden_channels=hidden_c, num_heads=nh, num_layers=num_layers).to(device) if use_gat else GCN(hidden_channels=hidden_c, num_layers=num_layers).to(device)
 
 print(model, flush=True)
 torch.save(model, f"data/graphs/{graph_num}/models/{run.name}.pt")
@@ -155,8 +174,9 @@ torch.save(model, f"data/graphs/{graph_num}/models/{run.name}.pt")
 data.x = data.x.to(device)
 data.edge_index = data.edge_index.to(device)
 
-optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=5e-4)
+optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-3)
 criterion = torch.nn.CrossEntropyLoss()
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=epochs//100)
 
 def train():
     model.train()
@@ -204,4 +224,5 @@ for epoch in range(1, epochs + 1):
         run.log({"training_loss": loss, "val_loss": val_loss, "val_acc": acc, "epoch": epoch})
         print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val_loss: {val_loss:.4f}, Validation Accuracy: {acc}', flush = True)
         torch.save(model.state_dict(), f'data/graphs/{graph_num}/models/{run.name}_latest.pt')
+    scheduler.step(loss)
 run.finish()
