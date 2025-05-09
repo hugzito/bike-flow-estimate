@@ -8,13 +8,22 @@ from torch.nn import Linear
 from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv, GATConv
 import wandb
+from sklearn.metrics import r2_score
+
+
+def try_int(i):
+    try:
+        return int(i)
+    except:
+        return str(i)
+
 
 # --- Configurations ---
 epochs = int(os.getenv("EPOCHS", 10))
 learning_rate = float(os.getenv("LEARNING_RATE", 0.001))
 hidden_c = int(os.getenv("HIDDEN_C", 16))
 random_seed = int(os.getenv("RANDOM_SEED", 42))
-bins = [int(i) for i in os.getenv("BINS", "1000 5000 10000").split()]
+bins = [try_int(i) for i in os.getenv("BINS", "1000 5000 10000").split()]
 num_layers = int(os.getenv("NUM_LAYERS", 5))
 nh = int(os.getenv("NUM_HEADS", 10))
 use_gat = bool(int(os.getenv("GAT", 0)))
@@ -22,10 +31,14 @@ api_key = os.getenv("API_KEY", None)
 graph_num = os.getenv("GRAPH_NUM", 2)
 dropout_p = float(os.getenv("DROPOUT", 0.5))
 
+if bins[0] == 'REGRESSION':
+    bins = 'regression'
+
+
 # --- WandB Initialization ---
 wandb.login(key=api_key)
 run = wandb.init(
-    project="Thesis-project",
+    project="Thesis-Final-Benchmarks",
     entity="christian-hugo-rasmussen-it-universitetet-i-k-benhavn",
     config={
         "epochs": epochs,
@@ -46,7 +59,8 @@ run = wandb.init(
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 print(f"Using {device}: {torch.cuda.get_device_name(0) if device.type == 'cuda' else 'CPU'}", flush=True)
 
-bins = torch.tensor(bins, device=device)
+if bins != 'regression':
+    bins = torch.tensor(bins, device=device)
 
 # --- Load Graph Data ---
 with open(f'data/graphs/{graph_num}/linegraph_tg.pkl', 'rb') as f:
@@ -122,8 +136,11 @@ class GCN(torch.nn.Module):
         self.hidden_layers = torch.nn.ModuleList()
         for _ in range(num_layers):
             self.hidden_layers.append(GCNConv(hidden_channels, hidden_channels, improved=True, cached=True))
+        if bins != 'regression':
+            self.output_layer = GCNConv(hidden_channels, len(bins) + 1, cached=True)
+        else:
+            self.output_layer = GCNConv(hidden_channels, 1, chached=True)
 
-        self.output_layer = GCNConv(hidden_channels, len(bins) + 1, cached=True)
 
     def forward(self, x, edge_index):
         x = self.input_layer(x, edge_index)
@@ -142,7 +159,7 @@ class GCN(torch.nn.Module):
 class GAT(torch.nn.Module):
     def __init__(self,hidden_channels, num_layers, num_heads):
         super().__init__()
-        torch.manual_seed(42)  # Replace with your desired seed
+        torch.manual_seed(random_seed)  # Replace with your desired seed
 
         self.convs = torch.nn.ModuleList()
 
@@ -154,7 +171,10 @@ class GAT(torch.nn.Module):
             self.convs.append(GATConv(hidden_channels * num_heads, hidden_channels, heads=num_heads, concat=True))
 
         # Output layer
-        self.convs.append(GATConv(hidden_channels * num_heads, len(bins) + 1, heads=1, concat=False))
+        if bins != 'regression':
+            self.convs.append(GATConv(hidden_channels * num_heads, len(bins) + 1, heads=1, concat=False))
+        else:
+            self.convs.append(GATConv(hidden_channels * num_heads, 1, heads=1, concat=False))
 
     def forward(self, x, edge_index):
         for conv in self.convs[:-1]:
@@ -176,6 +196,8 @@ data.edge_index = data.edge_index.to(device)
 
 optimizer = torch.optim.Adam(model.parameters(), lr=learning_rate, weight_decay=1e-3)
 criterion = torch.nn.CrossEntropyLoss()
+if bins == 'regression':
+    criterion = torch.nn.MSELoss()
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=epochs//100)
 
 def train():
@@ -188,8 +210,13 @@ def train():
     mask = data.train_mask.squeeze().to(device) & (data.y > 0).squeeze().to(device)
     out = model(data.x, data.edge_index)  # Perform a single forward pass.
     # Convert target to 1D tensor with dtype=torch.long
-    target = torch.bucketize(data.y[mask], bins).squeeze()
-    loss = criterion(out[mask], target.long())  # Ensure target is 1D and long
+    #target = torch.bucketize(data.y[mask], bins).squeeze()
+    if bins == 'regression':
+        target = data.y[mask].squeeze()
+        loss = criterion(out[mask].squeeze(), target)  # Ensure target is 1D and long
+    else:
+        target = torch.bucketize(data.y[mask], bins).squeeze()
+        loss = criterion(out[mask], target.long())
     loss.backward()  # Derive gradients.
     optimizer.step()  # Update parameters based on gradients.
     return loss
@@ -202,18 +229,24 @@ def test():
     data.y = data.y.to(device)
     mask = data.val_mask.squeeze() & (data.y > 0).squeeze()
     out = model(data.x, data.edge_index)
-    target = torch.bucketize(data.y[mask], bins).squeeze()
-    loss = criterion(out[mask], target.long())  # Ensure target is 1D and long
-    correct_preds = out[mask].argmax(dim=1)
-    correct = (correct_preds == target).sum()
-    accuracy = correct.item() / mask.sum().item()
+    #target = torch.bucketize(data.y[mask], bins).squeeze()
+    if bins == 'regression':
+        target = data.y[mask].squeeze()
+        loss = criterion(out[mask].squeeze(), target)
+        accuracy = r2_score(target.cpu().numpy(), out[mask].cpu().numpy())
+    else:
+        target = torch.bucketize(data.y[mask], bins).squeeze()
+        loss = criterion(out[mask], target.long())  # Ensure target is 1D and long
+        correct_preds = out[mask].argmax(dim=1)
+        correct = (correct_preds == target).sum()
+        accuracy = correct.item() / mask.sum().item()
     return accuracy, out, loss
 
 for epoch in range(1, epochs + 1):
     best_val_acc = 0
     best_val_loss = 100
     loss = train()
-    if epoch % (epochs/1000) == 0:
+    if epoch % 5 == 0:
         acc, val_out, val_loss = test()
         if acc > best_val_acc:
             best_val_acc = acc
@@ -221,8 +254,11 @@ for epoch in range(1, epochs + 1):
         if val_loss < best_val_loss:
             best_val_loss = val_loss
             torch.save(model.state_dict(), f'data/graphs/{graph_num}/models/{run.name}_best_loss.pt')
-        run.log({"training_loss": loss, "val_loss": val_loss, "val_acc": acc, "epoch": epoch})
-        print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val_loss: {val_loss:.4f}, Validation Accuracy: {acc}', flush = True)
+        if bins == 'regression':
+            print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}')
+        else:
+            print(f'Epoch: {epoch:03d}, Loss: {loss:.4f}, Val_loss: {val_loss:.4f}, Validation Accuracy: {acc}', flush = True)
         torch.save(model.state_dict(), f'data/graphs/{graph_num}/models/{run.name}_latest.pt')
+        run.log({"training_loss": loss, "val_loss": val_loss, "val_acc": acc, "epoch": epoch})
     scheduler.step(loss)
 run.finish()
