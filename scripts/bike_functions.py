@@ -54,7 +54,7 @@ def calc_bc(graph):
     total_nodes = graph.number_of_nodes() ** 2
     return {node: count / total_nodes for node, count in bc.items()}
 
-def load_aadt(filepath, g):
+def load_aadt(filepath, g, gdf):
     nodes, edges = mp.nx_to_gdf(g)
     gdf2 = gpd.GeoDataFrame.from_file(filepath)
     gdf2.set_crs(epsg=4326, inplace=True)
