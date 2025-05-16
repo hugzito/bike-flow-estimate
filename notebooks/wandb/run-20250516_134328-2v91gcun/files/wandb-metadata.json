@@ -1,0 +1,35 @@
+{
+  "os": "macOS-10.16-x86_64-i386-64bit",
+  "python": "CPython 3.9.0",
+  "startedAt": "2025-05-16T11:43:28.468643Z",
+  "program": "/Users/christianrasmussen/Documents/thesis/bike-flow-estimate/notebooks/model-training.ipynb",
+  "codePath": "notebooks/model-training.ipynb",
+  "git": {
+    "remote": "https://github.com/hugzito/bike-flow-estimate.git",
+    "commit": "10944c9b10089764521aecc7984229a9ee680223"
+  },
+  "email": "christian.hugo.rasmussen@gmail.com",
+  "root": "/Users/christianrasmussen/Documents/thesis/bike-flow-estimate/notebooks",
+  "host": "Christians-MacBook-Pro-2.local",
+  "executable": "/Users/christianrasmussen/opt/miniconda3/envs/py9/bin/python",
+  "codePathLocal": "model-training.ipynb",
+  "cpu_count": 8,
+  "cpu_count_logical": 16,
+  "disk": {
+    "/": {
+      "total": "628000530432",
+      "used": "573306613760"
+    },
+    "/System/Volumes/Data": {
+      "total": "628000530432",
+      "used": "573306613760"
+    }
+  },
+  "memory": {
+    "total": "17179869184"
+  },
+  "cpu": {
+    "count": 8,
+    "countLogical": 16
+  }
+}
