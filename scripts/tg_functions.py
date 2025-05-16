@@ -6,8 +6,9 @@ from sklearn.metrics import r2_score
 
 def stratified_split(data, train_ratio=0.7, val_ratio=0.15, test_ratio=0.15, random_seed=100):
     positive_mask = data.y > 0
-    positive_indices = positive_mask.nonzero(as_tuple=False).squeeze()
-    negative_indices = (~positive_mask).nonzero(as_tuple=False).squeeze()
+    positive_indices = positive_mask.nonzero(as_tuple=False).squeeze().cpu().numpy()
+    negative_indices = (~positive_mask).nonzero(as_tuple=False).squeeze().cpu().numpy()
+
 
     pos_train, pos_temp = train_test_split(positive_indices, train_size=train_ratio, random_state=random_seed)
     pos_val, pos_test = train_test_split(pos_temp, test_size=test_ratio / (val_ratio + test_ratio), random_state=random_seed)
