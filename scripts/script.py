@@ -26,14 +26,15 @@ random_seed = int(os.getenv("RANDOM_SEED", 42))
 bins = [try_int(i) for i in os.getenv("BINS", "1000 5000 10000").split()]
 num_layers = int(os.getenv("NUM_LAYERS", 5))
 nh = int(os.getenv("NUM_HEADS", 10))
-use_gat = bool(int(os.getenv("GAT", 0)))
+use_gat = try_int(os.getenv("GAT", 0))
 api_key = os.getenv("API_KEY", None)
 graph_num = os.getenv("GRAPH_NUM", 2)
 dropout_p = float(os.getenv("DROPOUT", 0.5))
 
 if bins[0] == 'REGRESSION':
     bins = 'regression'
-
+if use_gat in[0, 1]:
+    use_gat = bool(use_gat)
 
 # --- WandB Initialization ---
 wandb.login(key=api_key)
@@ -129,7 +130,6 @@ class GCN(torch.nn.Module):
     def __init__(self, hidden_channels, num_layers):
         super().__init__()
         torch.manual_seed(random_seed)
-
         self.input_layer = GCNConv(data.num_features, hidden_channels, improved=True, cached=True)
 
         # Create intermediate hidden layers (optional)
@@ -139,7 +139,7 @@ class GCN(torch.nn.Module):
         if bins != 'regression':
             self.output_layer = GCNConv(hidden_channels, len(bins) + 1, cached=True)
         else:
-            self.output_layer = GCNConv(hidden_channels, 1, chached=True)
+            self.output_layer = GCNConv(hidden_channels, 1, cached=True)
 
 
     def forward(self, x, edge_index):
@@ -180,12 +180,36 @@ class GAT(torch.nn.Module):
         for conv in self.convs[:-1]:
             x = conv(x, edge_index)
             x = F.elu(x)
-            x = F.dropout(x, p=0.5, training=self.training)  # Adjust dropout probability as needed
+            x = F.dropout(x, p=dropout_p, training=self.training)  # Adjust dropout probability as needed
 
         x = self.convs[-1](x, edge_index)
         return x
+
+class MLP(torch.nn.Module):
+    def __init__(self, hidden_channels, num_layers, num_heads = None):
+        super().__init__()
+        torch.manual_seed(random_seed)
+        self.fcs = torch.nn.ModuleList()
+        self.fcs.append(torch.nn.Linear(data.num_features, hidden_channels))
+        for _ in range(num_layers):
+            self.fcs(torch.nn.Linear(hidden_channels, hidden_channels))
+        if bins != 'regression':
+            self.fcs.append(torch.nn.Linear(hidden_channels, len(bins) +1 ))
+        else:
+            self.fcs.append(torch.nn.Linear(hidden_channels, 1))
+    def forward(self, x, edge_index = None):
+        for fc in self.fcs[:-1]:
+            x = fc(x)
+            x = F.elu(x)
+            x = F.dropout(x, p = dropout_p, training = self.training)
+        x = self.fcs[-1](x)
+        return x
 # --- Model Instantiation ---
+
 model = GAT(hidden_channels=hidden_c, num_heads=nh, num_layers=num_layers).to(device) if use_gat else GCN(hidden_channels=hidden_c, num_layers=num_layers).to(device)
+
+if use_gat == 'MLP':
+    model = MLP
 
 print(model, flush=True)
 torch.save(model, f"data/graphs/{graph_num}/models/{run.name}.pt")
@@ -233,7 +257,7 @@ def test():
     if bins == 'regression':
         target = data.y[mask].squeeze()
         loss = criterion(out[mask].squeeze(), target)
-        accuracy = r2_score(target.cpu().numpy(), out[mask].cpu().numpy())
+        accuracy = r2_score(target.detach().cpu().numpy(), out[mask].detach().cpu().numpy())
     else:
         target = torch.bucketize(data.y[mask], bins).squeeze()
         loss = criterion(out[mask], target.long())  # Ensure target is 1D and long
