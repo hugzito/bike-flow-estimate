@@ -6,16 +6,16 @@ import torch
 import wandb
 
 # --- Configurations ---
-epochs = int(os.getenv("EPOCHS", 10))
-learning_rate = float(os.getenv("LEARNING_RATE", 0.001))
-hidden_c = int(os.getenv("HIDDEN_C", 16))
-random_seed = int(os.getenv("RANDOM_SEED", 42))
-bins = [try_int(i) for i in os.getenv("BINS", "1000 5000 10000").split()]
-num_layers = int(os.getenv("NUM_LAYERS", 5))
-nh = int(os.getenv("NUM_HEADS", 10))
-use_gat = try_int(os.getenv("GAT", 0))
+epochs = int(os.getenv("EPOCHS", 50000))
+learning_rate = float(os.getenv("LEARNING_RATE", 0.0001))
+hidden_c = int(os.getenv("HIDDEN_C", 350))
+random_seed = int(os.getenv("RANDOM_SEED", 100))
+bins = [try_int(i) for i in os.getenv("BINS", "400 800 1300 2100 3000 3700 4700 7020 9660").split()]
+num_layers = int(os.getenv("NUM_LAYERS", 2))
+nh = int(os.getenv("NUM_HEADS", 1))
+use_gat = try_int(os.getenv("GAT", 1))
 api_key = os.getenv("API_KEY", None)
-graph_num = os.getenv("GRAPH_NUM", 2)
+graph_num = os.getenv("GRAPH_NUM", 17)
 dropout_p = float(os.getenv("DROPOUT", 0.5))
 
 if bins[0] == 'REGRESSION':
