@@ -34,12 +34,44 @@ def get_city_graph(lat, lon, dist, features, expand_features):
     gdf = gdf[gdf.geometry.notnull()].reset_index(drop=True)
     return g, gdf, amenities
 
+# def create_linegraph(g):
+#     g = nx.Graph(g)
+#     H = nx.line_graph(g)
+#     H.add_nodes_from((node, g.edges[node]) for node in H)   
+#     for s, t in H.edges:
+#         H.edges[s, t]['weight'] = g.edges[s]['length'] + g.edges[t]['length']
+#     return H
+
 def create_linegraph(g):
-    g = nx.Graph(g)
-    H = nx.line_graph(g)
-    H.add_nodes_from((node, g.edges[node]) for node in H)   
-    for s, t in H.edges:
-        H.edges[s, t]['weight'] = g.edges[s]['length'] + g.edges[t]['length']
+    # Ensure g is a MultiGraph
+    if not isinstance(g, nx.MultiGraph):
+        g = nx.MultiGraph(g)
+
+    # Give unique IDs to each edge
+    edge_nodes = {}
+    for idx, (u, v, key, data) in enumerate(g.edges(keys=True, data=True)):
+        edge_nodes[(u, v, key)] = f"e{idx}"
+
+    # Create line graph H with edges as nodes
+    H = nx.Graph()
+    for (u1, v1, k1), n1 in edge_nodes.items():
+        for (u2, v2, k2), n2 in edge_nodes.items():
+            if n1 == n2:
+                continue
+            # If edges share a node, add edge in line graph
+            if len({u1, v1} & {u2, v2}) > 0:
+                H.add_edge(n1, n2)
+
+    # Assign attributes from original edges to H's nodes
+    for (u, v, k), node in edge_nodes.items():
+        H.nodes[node].update(g.edges[u, v, k])
+
+    # Add weight to edges in line graph based on length sum
+    for n1, n2 in H.edges:
+        len1 = H.nodes[n1].get('length', 0)
+        len2 = H.nodes[n2].get('length', 0)
+        H.edges[n1, n2]['weight'] = len1 + len2
+
     return H
 
 def calc_bc(graph):
