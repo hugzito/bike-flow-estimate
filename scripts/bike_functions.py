@@ -108,14 +108,16 @@ def assign_aadt_to_graph_edges(g, gdf_new, H, aadt_col='aadt_cykler'):
                 start_node, end_node = end_node, start_node
 
         node_pair = (start_node, end_node)
-
+        over_writes = 0
         # Initialize or update AADT attributes if closer
         if 'aadt' not in H.nodes()[node_pair]:
             H.nodes()[node_pair]['aadt'] = row[aadt_col]
             H.nodes()[node_pair]['aadt_distance'] = nearest_edge_distance
         elif H.nodes()[node_pair]['aadt_distance'] > nearest_edge_distance:
+            over_writes += 1
             H.nodes()[node_pair]['aadt'] = row[aadt_col]
             H.nodes()[node_pair]['aadt_distance'] = nearest_edge_distance
+        print(f"How many times did we overwrite and AADT Value? {over_writes}")
     return H
 
 def clean_and_standardize_node_features(H, remove_fields=None):
