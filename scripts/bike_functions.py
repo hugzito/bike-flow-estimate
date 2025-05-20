@@ -1,6 +1,7 @@
 import torch
 from torch_geometric.data import Data
 import osmnx as ox
+from osmnx.convert import to_digraph, to_undirected
 import networkx as nx
 import numpy as np
 import geopandas as gpd
