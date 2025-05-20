@@ -315,7 +315,7 @@ def save_graph_with_config(
                 num_folder = os.path.splitext(os.path.basename(file))[0]
                 break
         if not num_folder:
-            num_folder = str(len(config_folder) + 1)
+            num_folder = str(max(config_folder) + 1)
 
     # Create necessary folders and save configs
     os.makedirs(f'{base_path}/{num_folder}/models', exist_ok=True)
