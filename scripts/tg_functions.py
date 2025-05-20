@@ -70,9 +70,10 @@ def train(model, data, optimizer, criterion, device, bins):
     else:
         target = torch.bucketize(data.y[mask], bins).squeeze()
         loss = criterion(out[mask], target.long())
+    model.zero_grad()  # Clear gradients.
     loss.backward()  # Derive gradients.
     optimizer.step()  # Update parameters based on gradients.
-    return loss
+    return loss.item()
 
 def test(model, data, criterion, device, bins):
     model.eval()
