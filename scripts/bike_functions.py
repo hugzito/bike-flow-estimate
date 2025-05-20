@@ -13,6 +13,7 @@ from shapely.strtree import STRtree
 import pickle
 from tqdm import tqdm
 import os, glob
+from collections import Counter
 
 def get_city_graph(lat, lon, dist, features, expand_features):
     g = ox.graph_from_point((lat, lon), dist=dist, network_type='bike', simplify=True, retain_all=False)
