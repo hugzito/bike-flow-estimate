@@ -270,19 +270,38 @@ def save_graph_with_config(
     def config_matches(file_path):
         with open(file_path, 'r') as f:
             config = f.readlines()
+
         config_dict = {}
         for line in config:
+            if ':' not in line:
+                continue
             key, value = line.strip().split(':', 1)
-            if key.strip() == 'distance':
-                config_dict['distance'] = int(value.strip())
+            key = key.strip()
+            value = value.strip()
+            if key == 'distance':
+                config_dict['distance'] = int(value)
             else:
-                config_dict[key.strip()] = sorted(value.strip().split())
+                config_dict[key] = sorted(value.split())
 
-        return (
-            sorted(features) == config_dict.get('features', []) and
-            sorted(expand_features) == config_dict.get('expand_features', []) and
-            dist == config_dict.get('distance', None)
-        )
+        match_features = sorted(features) == config_dict.get('features', [])
+        match_expand = sorted(expand_features) == config_dict.get('expand_features', [])
+        match_dist = dist == config_dict.get('distance', None)
+
+        print(f"--- Checking config file: {file_path}")
+        print(f"  Expected features:       {sorted(features)}")
+        print(f"  Config file features:    {config_dict.get('features', [])}")
+        print(f"  → Match: {match_features}")
+
+        print(f"  Expected expand_feats:   {sorted(expand_features)}")
+        print(f"  Config file expand_feats:{config_dict.get('expand_features', [])}")
+        print(f"  → Match: {match_expand}")
+
+        print(f"  Expected distance:       {dist}")
+        print(f"  Config file distance:    {config_dict.get('distance')}")
+        print(f"  → Match: {match_dist}")
+
+        return match_features and match_expand and match_dist
+
 
 
     # Determine folder number
