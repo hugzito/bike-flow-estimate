@@ -33,8 +33,9 @@ def get_city_graph(lat, lon, dist, features, expand_features):
     return g, gdf, amenities
 
 def create_linegraph(g):
-    g = ox.convert.to_digraph(g)
+    # g = ox.convert.to_digraph(g)
     # g = ox.convert.to_undirected(g)
+    g = nx.Graph(g)
     H = nx.line_graph(g)
     H.add_nodes_from((node, g.edges[node]) for node in H)   
     for s, t in H.edges:
