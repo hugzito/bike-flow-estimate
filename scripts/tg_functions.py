@@ -94,7 +94,7 @@ def test(model, data, criterion, device, bins):
         correct_preds = out[mask].argmax(dim=1)
         correct = (correct_preds == target).sum()
         accuracy = correct.item() / mask.sum().item()
-    return accuracy, out, loss
+    return accuracy, out, loss.item()
 
 def try_int(i):
     try:
