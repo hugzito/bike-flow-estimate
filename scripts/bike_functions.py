@@ -44,37 +44,46 @@ def create_linegraph(g):
         H.edges[s, t]['weight'] = g.edges[s]['length'] + g.edges[t]['length']
     return H
 
-# def create_linegraph(g):
-#     # Ensure g is a MultiGraph
-#     if not isinstance(g, nx.MultiGraph):
-#         g = nx.MultiGraph(g)
+def assign_features_to_nodes(H, amenities_gdf, geometry_col='geometry', amenity_col='amenity'):
+    """
+    Assigns amenities from a GeoDataFrame to the nearest graph node (based on geometry),
+    then stores frequency counts of amenity types as node attributes.
 
-#     # Give unique IDs to each edge
-#     edge_nodes = {}
-#     for idx, (u, v, key, data) in enumerate(g.edges(keys=True, data=True)):
-#         edge_nodes[(u, v, key)] = f"e{idx}"
+    Parameters:
+    - H: networkx.Graph with 'geometry' in each node.
+    - amenities_gdf: GeoDataFrame with amenity information and geometry.
+    - geometry_col: name of the column in the GeoDataFrame containing geometry.
+    - amenity_col: name of the column with amenity types.
+    """
 
-#     # Create line graph H with edges as nodes
-#     H = nx.Graph()
-#     for (u1, v1, k1), n1 in edge_nodes.items():
-#         for (u2, v2, k2), n2 in edge_nodes.items():
-#             if n1 == n2:
-#                 continue
-#             # If edges share a node, add edge in line graph
-#             if len({u1, v1} & {u2, v2}) > 0:
-#                 H.add_edge(n1, n2)
+    # Extract nodes with geometry
+    nodes_with_geom = [(node, data.get('geometry')) for node, data in H.nodes(data=True) if data.get('geometry') is not None]
+    if not nodes_with_geom:
+        raise ValueError("No nodes with 'geometry' found in the graph.")
 
-#     # Assign attributes from original edges to H's nodes
-#     for (u, v, k), node in edge_nodes.items():
-#         H.nodes[node].update(g.edges[u, v, k])
+    node_ids, linestrings = zip(*nodes_with_geom)
 
-#     # Add weight to edges in line graph based on length sum
-#     for n1, n2 in H.edges:
-#         len1 = H.nodes[n1].get('length', 0)
-#         len2 = H.nodes[n2].get('length', 0)
-#         H.edges[n1, n2]['weight'] = len1 + len2
+    # Ensure point geometries for amenity data
+    amenities_gdf = amenities_gdf.copy()
+    amenities_gdf[geometry_col] = amenities_gdf[geometry_col].apply(
+        lambda x: x.centroid if x.geom_type == 'Polygon' else x
+    )
 
-#     return H
+    # Build spatial index
+    tree = STRtree(linestrings)
+
+    # Assign amenities to nearest nodes
+    for geom, amenity in zip(amenities_gdf[geometry_col], amenities_gdf[amenity_col]):
+        nearest_idx = tree.nearest(geom)
+        nearest_node = node_ids[nearest_idx]
+        H.nodes[nearest_node].setdefault('amenity', []).append(amenity)
+
+    # Convert amenity lists to frequency counts
+    for node, data in H.nodes(data=True):
+        if 'amenity' in data:
+            for amenity_type, count in Counter(data['amenity']).items():
+                H.nodes[node][amenity_type] = count
+            H.nodes[node].pop('amenity', None)
 
 def calc_bc(graph):
     ebc = dict(nx.all_pairs_dijkstra_path(graph,
