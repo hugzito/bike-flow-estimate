@@ -1,14 +1,10 @@
 import torch
 from torch_geometric.data import Data
 import osmnx as ox
-from osmnx.convert import to_digraph, to_undirected
 import networkx as nx
 import numpy as np
 import geopandas as gpd
-from folium import plugins
-from folium.plugins import HeatMap
 import momepy as mp 
-import seaborn as sns
 from shapely.strtree import STRtree
 import pickle
 from tqdm import tqdm
@@ -343,3 +339,55 @@ def save_graph_with_config(
 
     print(f"Graph and data saved in folder {num_folder}")
     return num_folder
+
+
+def build_value_to_column_dict():
+    import osmnx as ox
+    import json
+    import os
+
+    # Step 1: Define parameters
+    lat, lon = 55.6867243, 12.5700724
+    dist = 10000  # in meters
+    features = [
+        'amenity', 'shop', 'building', 'aerialway', 'aeroway',
+        'barrier', 'boundary', 'craft', 'emergency', 'highway',
+        'historic', 'landuse', 'leisure', 'healthcare', 'military',
+        'natural', 'office', 'power', 'public_transport', 'railway',
+        'place', 'service', 'tourism', 'waterway', 'route', 'water'
+    ]
+
+    json_path = 'osm_value_to_column.json'
+
+    # Step 2: Load or Build value-to-column dictionary
+    if os.path.exists(json_path):
+        print(f"📂 Found existing '{json_path}', loading dictionary...")
+        with open(json_path, 'r') as f:
+            value_to_column = json.load(f)
+        print(f"✅ Loaded {len(value_to_column)} value-to-column pairs from '{json_path}'.")
+    else:
+        print("📥 No existing dictionary found. Downloading OSM features...")
+
+        # Download features
+        tags = {feat: True for feat in features}
+        amenities = ox.features.features_from_point((lat, lon), tags=tags, dist=dist)
+
+        print(f"✅ Downloaded {len(amenities)} OSM features.")
+
+        # Build dictionary
+        value_to_column = {}
+
+        for feature in features:
+            if feature in amenities.columns:
+                unique_values = amenities[feature].dropna().unique()
+                for value in unique_values:
+                    value = str(value).strip()
+                    if value and value.lower() != 'nan':
+                        value_to_column[value] = feature
+
+        print(f"✅ Collected {len(value_to_column)} value-to-column pairs.")
+
+        # Save it
+        with open(json_path, 'w') as f:
+            json.dump(value_to_column, f, indent=2)
+        print(f"✅ Saved new value-to-column dictionary to '{json_path}'.")
