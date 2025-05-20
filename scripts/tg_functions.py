@@ -56,6 +56,7 @@ def stratified_kfold_split(data, num_folds=5, random_seed=100):
 
 def train(model, data, optimizer, criterion, device, bins):
     model.train()
+    optimizer.zero_grad()
     data.x = data.x.to(device)
     data.edge_index = data.edge_index.to(device)
     data.test_mask = data.test_mask.to(device)
@@ -70,7 +71,6 @@ def train(model, data, optimizer, criterion, device, bins):
     else:
         target = torch.bucketize(data.y[mask], bins).squeeze()
         loss = criterion(out[mask], target.long())
-    model.zero_grad()  # Clear gradients.
     loss.backward()  # Derive gradients.
     optimizer.step()  # Update parameters based on gradients.
     return loss.item()
