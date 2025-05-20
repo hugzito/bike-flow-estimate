@@ -391,3 +391,4 @@ def build_value_to_column_dict():
         with open(json_path, 'w') as f:
             json.dump(value_to_column, f, indent=2)
         print(f"✅ Saved new value-to-column dictionary to '{json_path}'.")
+    return value_to_column
