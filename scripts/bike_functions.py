@@ -273,13 +273,17 @@ def save_graph_with_config(
         config_dict = {}
         for line in config:
             key, value = line.strip().split(':', 1)
-            config_dict[key.strip()] = set(value.strip().split()) if key != 'distance' else int(value.strip())
+            if key.strip() == 'distance':
+                config_dict['distance'] = int(value.strip())
+            else:
+                config_dict[key.strip()] = sorted(value.strip().split())
 
         return (
-            config_dict.get('features', set()) == set(features) and
-            config_dict.get('expand_features', set()) == set(expand_features) and
-            config_dict.get('distance', None) == dist
+            sorted(features) == config_dict.get('features', []) and
+            sorted(expand_features) == config_dict.get('expand_features', []) and
+            dist == config_dict.get('distance', None)
         )
+
 
     # Determine folder number
     if not config_folder:
@@ -287,7 +291,7 @@ def save_graph_with_config(
         num_folder = '1'
     else:
         num_folder = None
-        for file in config_folder:
+        for file in config_folder:  
             if config_matches(file):
                 num_folder = os.path.splitext(os.path.basename(file))[0]
                 break
@@ -297,9 +301,10 @@ def save_graph_with_config(
     # Create necessary folders and save configs
     os.makedirs(f'{base_path}/{num_folder}/models', exist_ok=True)
     with open(f'{base_path}/configs/{num_folder}.txt', 'w') as f:
-        f.write(f"features: {' '.join(features)}\n")
-        f.write(f"expand_features: {' '.join(expand_features)}\n")
+        f.write(f"features: {' '.join(sorted(features))}\n")
+        f.write(f"expand_features: {' '.join(sorted(expand_features))}\n")
         f.write(f"distance: {dist}\n")
+
 
     # Save data
     with open(f'{base_path}/{num_folder}/linegraph_tg.pkl', 'wb') as f:
