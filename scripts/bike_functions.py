@@ -265,6 +265,7 @@ def save_graph_with_config(
     Returns:
     - num_folder (str): The assigned folder number where data was saved.
     """
+    import re
     config_folder = glob.glob(f'{base_path}/configs/*.txt')
 
     def config_matches(file_path):
@@ -310,12 +311,18 @@ def save_graph_with_config(
         num_folder = '1'
     else:
         num_folder = None
-        for file in config_folder:  
+        for file in config_folder:
             if config_matches(file):
                 num_folder = os.path.splitext(os.path.basename(file))[0]
                 break
         if not num_folder:
-            num_folder = str(max(config_folder) + 1)
+            config_nums = [
+                int(re.search(r'(\d+)\.txt$', os.path.basename(path)).group(1))
+                for path in config_folder
+                if re.search(r'(\d+)\.txt$', os.path.basename(path))
+            ]
+            num_folder = str(max(config_nums) + 1) if config_nums else '1'
+
 
     # Create necessary folders and save configs
     os.makedirs(f'{base_path}/{num_folder}/models', exist_ok=True)
