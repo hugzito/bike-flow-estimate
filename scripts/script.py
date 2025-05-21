@@ -78,9 +78,9 @@ if bins == 'regression':
     criterion = torch.nn.MSELoss()
 scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, 'min', patience=epochs//100)
 
+best_val_acc = 0
+best_val_loss = 100
 for epoch in range(1, epochs + 1):
-    best_val_acc = 0
-    best_val_loss = 100
     loss = train(model, data, optimizer, criterion, device, bins)
     if epoch % 5 == 0:
         acc, val_out, val_loss = test(model, data, criterion, device, bins)
