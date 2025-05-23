@@ -11,8 +11,15 @@ from tqdm import tqdm
 import os, glob
 from collections import Counter
 
-def get_city_graph(lat, lon, dist, features, expand_features):
-    g = ox.graph_from_point((lat, lon), dist=dist, network_type='bike', simplify=True, retain_all=False)
+def get_city_graph(lat, lon, dist, features, expand_features, timestamp='[date:"2025-04-27T00:00:00Z"]'):
+    g = ox.graph_from_point(
+        (lat, lon),
+        dist=dist, 
+        network_type='bike', 
+        simplify=True, 
+        retain_all=False,
+        custom_filter=timestamp
+        )
     feat_dict = {i : True for i in features}
     amenities = ox.features.features_from_point((lat, lon), tags=feat_dict, dist=dist)
     amenities = amenities[amenities.geometry.notnull()]
@@ -233,7 +240,7 @@ def graph_to_linegraph_data(H, all_feats, target_feat='aadt', osmid_feat='osmid'
     data.y = torch.tensor(y, dtype=torch.float)
     data.osmid = torch.tensor(osmid_list, dtype=torch.long)
     data.edge_index = torch.tensor(edge_index, dtype=torch.long).t()
-    data.H = H  # Optional: Attach original H graph if needed
+    # data.H = H  # Optional: Attach original H graph if needed
 
     return data
 
@@ -348,6 +355,7 @@ import re
 def save_graph_with_config(
     linegraph, 
     H, 
+    g,
     node_features, 
     features, 
     expand_features, 
@@ -389,23 +397,9 @@ def save_graph_with_config(
             else:
                 config_dict[key] = sorted(value.split())
 
-        match_features = sorted(features) == config_dict.get('features', [])
-        match_expand = sorted(expand_features) == config_dict.get('expand_features', [])
+        match_features = sorted(features) == sorted(config_dict.get('features', []))
+        match_expand = sorted(expand_features) == sorted(config_dict.get('expand_features', []))
         match_dist = dist == config_dict.get('distance', None)
-
-        print(f"--- Checking config file: {file_path}")
-        print(f"  Expected features:       {sorted(features)}")
-        print(f"  Config file features:    {config_dict.get('features', [])}")
-        print(f"  → Match: {match_features}")
-
-        print(f"  Expected expand_feats:   {sorted(expand_features)}")
-        print(f"  Config file expand_feats:{config_dict.get('expand_features', [])}")
-        print(f"  → Match: {match_expand}")
-
-        print(f"  Expected distance:       {dist}")
-        print(f"  Config file distance:    {config_dict.get('distance')}")
-        print(f"  → Match: {match_dist}")
-
         return match_features and match_expand and match_dist
 
     # Determine folder number
@@ -440,7 +434,9 @@ def save_graph_with_config(
 
     with open(f'{base_path}/{num_folder}/linegraph_nx.pkl', 'wb') as f:
         pickle.dump(H, f)
-
+    
+    with open(f'{base_path}/{num_folder}/original_graph_nx.pkl', 'wb') as f:
+            pickle.dump(g, f)
     node_features.to_csv(f'{base_path}/{num_folder}/node_features.csv', index=False)
 
     print(f"Graph and data saved in folder {num_folder}")
