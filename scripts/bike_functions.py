@@ -246,9 +246,14 @@ def graph_to_linegraph_data(H, all_feats, target_feat='aadt', osmid_feat='osmid'
     """
     node_list, x, y, osmid_list = [], [], [], []
 
+    node_feat_names = []
     for node, feats in H.nodes(data=True):
         node_list.append(node)
-        x.append([feats.get(feat, 0.0) for feat in all_feats if feat not in [target_feat, osmid_feat]])
+        for feat in all_feats:
+            if feat not in [osmid_feat, target_feat]:
+                if feat not in node_feat_names:
+                    node_feat_names.append(feat)
+                x.append(feats.get(feat, 0.0))
         y.append(feats[target_feat])
         osmid_list.append(feats[osmid_feat])
 
@@ -264,7 +269,7 @@ def graph_to_linegraph_data(H, all_feats, target_feat='aadt', osmid_feat='osmid'
     data.edge_index = torch.tensor(edge_index, dtype=torch.long).t()
     # data.H = H  # Optional: Attach original H graph if needed
 
-    return data
+    return data, node_feat_names
 
 import os
 import glob
