@@ -246,14 +246,10 @@ def graph_to_linegraph_data(H, all_feats, target_feat='aadt', osmid_feat='osmid'
     """
     node_list, x, y, osmid_list = [], [], [], []
 
-    node_feat_names = []
+    node_feat_names = [i for i in all_feats if i not in [target_feat, osmid_feat]]
     for node, feats in H.nodes(data=True):
         node_list.append(node)
-        for feat in all_feats:
-            if feat not in [osmid_feat, target_feat]:
-                if feat not in node_feat_names:
-                    node_feat_names.append(feat)
-                x.append(feats.get(feat, 0.0))
+        x.append([feats.get(feat, 0.0) for feat in all_feats if feat not in [target_feat, osmid_feat]])
         y.append(feats[target_feat])
         osmid_list.append(feats[osmid_feat])
 
@@ -279,8 +275,7 @@ import re
 def save_graph_with_config(
     linegraph, 
     H, 
-    g,
-    node_features, 
+    g, 
     features, 
     expand_features, 
     dist, 
@@ -293,7 +288,6 @@ def save_graph_with_config(
     Parameters:
     - linegraph: PyTorch Geometric Data object.
     - H: NetworkX graph object.
-    - node_features: DataFrame of node features.
     - features: list of features.
     - expand_features: list of expanded features.
     - dist: distance parameter.
@@ -361,7 +355,6 @@ def save_graph_with_config(
     
     with open(f'{base_path}/{num_folder}/original_graph_nx.pkl', 'wb') as f:
             pickle.dump(g, f)
-    node_features.to_csv(f'{base_path}/{num_folder}/node_features.csv', index=False)
 
     print(f"Graph and data saved in folder {num_folder}")
     return num_folder
