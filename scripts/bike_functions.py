@@ -36,6 +36,19 @@ def get_city_graph(lat, lon, dist, features, expand_features):
 
     gdf = mp.nx_to_gdf(g, points=False, lines=True, spatial_weights=True).to_crs(epsg=3857)
     gdf = gdf[gdf.geometry.notnull()].reset_index(drop=True)
+    # ensure amenities and gdf have the same CRS
+    amenities = gpd.GeoDataFrame(amenities, geometry='geometry', crs='EPSG:4326')
+    amenities = amenities.to_crs(epsg=3857)
+    # ensure gdf has the same CRS as amenities
+    assert gdf.crs == amenities.crs, "CRS mismatch between gdf and amenities"
+    # convert amenties geometry to centroid if it is a polygon
+    amenities['geometry'] = amenities['geometry'].apply(
+        lambda x: x.centroid if x.geom_type == 'Polygon' else x
+    )
+    # remove all amenities that are not within the gdf geometry
+    xmin, ymin, xmax, ymax = gdf.total_bounds
+    amenities = amenities.cx[xmin:xmax, ymin:ymax]
+
     return g, gdf, amenities
 
 def create_linegraph(g):
