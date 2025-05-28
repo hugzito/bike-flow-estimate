@@ -62,6 +62,7 @@ def create_linegraph(g):
     return H
 
 def assign_features_to_nodes(H, amenities_gdf, geometry_col='geometry', amenity_col='amenity'):
+    import tqdm
     """
     Assigns amenities from a GeoDataFrame to the nearest graph node (based on geometry),
     then stores frequency counts of amenity types as node attributes.
@@ -90,17 +91,24 @@ def assign_features_to_nodes(H, amenities_gdf, geometry_col='geometry', amenity_
     tree = STRtree(linestrings)
 
     # Assign amenities to nearest nodes
-    for geom, amenity in zip(amenities_gdf[geometry_col], amenities_gdf[amenity_col]):
+    print('Now assigning amenities to nodes')
+    for geom, amenity in tqdm.tqdm(zip(amenities_gdf[geometry_col], amenities_gdf[amenity_col]), total=len(amenities_gdf)):
         nearest_idx = tree.nearest(geom)
         nearest_node = node_ids[nearest_idx]
         H.nodes[nearest_node].setdefault('amenity', []).append(amenity)
 
     # Convert amenity lists to frequency counts
-    for node, data in H.nodes(data=True):
+    print('Now converting amenity lists to frequency counts')
+    for node, data in tqdm.tqdm(H.nodes(data=True), total=H.number_of_nodes()):
         if 'amenity' in data:
             for amenity_type, count in Counter(data['amenity']).items():
                 H.nodes[node][amenity_type] = count
             H.nodes[node].pop('amenity', None)
+    
+    print('Now assigning AADT values to nodes without AADT')
+    for node, value in tqdm.tqdm(H.nodes(data=True)):
+        if 'aadt' not in value.keys():
+            value['aadt'] = 0
 
 def calc_bc(graph):
     ebc = dict(nx.all_pairs_dijkstra_path(graph,
