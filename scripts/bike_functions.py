@@ -50,6 +50,7 @@ def get_city_graph(lat, lon, dist, features, expand_features):
     xmin, ymin, xmax, ymax = gdf.total_bounds
     amenities = amenities.cx[xmin:xmax, ymin:ymax]
     print(f"Number of amenities after filtering: {len(amenities)}")
+    amenities = amenities.to_crs(epsg=4326)
     return g, gdf, amenities
 
 def create_linegraph(g):
