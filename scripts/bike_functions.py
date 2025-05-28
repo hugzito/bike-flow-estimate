@@ -275,7 +275,7 @@ import re
 def save_graph_with_config(
     linegraph, 
     H, 
-    g, 
+    g,
     features, 
     expand_features, 
     dist, 
@@ -355,6 +355,7 @@ def save_graph_with_config(
     
     with open(f'{base_path}/{num_folder}/original_graph_nx.pkl', 'wb') as f:
             pickle.dump(g, f)
+    # node_features.to_csv(f'{base_path}/{num_folder}/node_features.csv', index=False)
 
     print(f"Graph and data saved in folder {num_folder}")
     return num_folder
