@@ -23,6 +23,7 @@ def get_city_graph(lat, lon, dist, features, expand_features):
     amenities = ox.features.features_from_point((lat, lon), tags=feat_dict, dist=dist)
     amenities = amenities[amenities.geometry.notnull()]
     amenities['new_col'] = np.nan
+    print('Number of amenities found:', len(amenities))
 
     for feat in features:
         if feat not in expand_features:
@@ -48,7 +49,7 @@ def get_city_graph(lat, lon, dist, features, expand_features):
     # remove all amenities that are not within the gdf geometry
     xmin, ymin, xmax, ymax = gdf.total_bounds
     amenities = amenities.cx[xmin:xmax, ymin:ymax]
-
+    print(f"Number of amenities after filtering: {len(amenities)}")
     return g, gdf, amenities
 
 def create_linegraph(g):
