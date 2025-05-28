@@ -11,14 +11,14 @@ from tqdm import tqdm
 import os, glob
 from collections import Counter
 
-def get_city_graph(lat, lon, dist, features, expand_features, timestamp='[date:"2025-04-27T00:00:00Z"]'):
+def get_city_graph(lat, lon, dist, features, expand_features):
     g = ox.graph_from_point(
         (lat, lon),
         dist=dist, 
         network_type='bike', 
         simplify=True, 
         retain_all=False,
-        custom_filter=timestamp
+        # custom_filter=timestamp
         )
     feat_dict = {i : True for i in features}
     amenities = ox.features.features_from_point((lat, lon), tags=feat_dict, dist=dist)
