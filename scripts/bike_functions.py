@@ -369,13 +369,7 @@ def build_value_to_column_dict():
     # Step 1: Define parameters
     lat, lon = 55.6867243, 12.5700724
     dist = 10000  # in meters
-    features = [
-        'amenity', 'shop', 'building', 'aerialway', 'aeroway',
-        'barrier', 'boundary', 'craft', 'emergency', 'highway',
-        'historic', 'landuse', 'leisure', 'healthcare', 'military',
-        'natural', 'office', 'power', 'public_transport', 'railway',
-        'place', 'service', 'tourism', 'waterway', 'route', 'water'
-    ]
+    features = 'aerialway aeroway amenity barrier boundary building craft emergency geological healthcare highway historic landuse leisure man_made military natural office place power public_transport railway route service shop telecom tourism water waterway'.split()
 
     json_path = 'osm_value_to_column.json'
 
