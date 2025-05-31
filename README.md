@@ -15,7 +15,7 @@ This project aims to:
 ---
 ## Repository Structure
 ```
-bike-flow-estimate/ <br>
+bike-flow-estimate/
 ├── data/ # Contains raw and processed datasets (e.g., road network, bike flow data)
 ├── notebooks/ # Jupyter notebooks for exploration, experiments, and visualization 
 │ ├── network-construction.ipynb # Construction of networks and assignment of features + target variable 
