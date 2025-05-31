@@ -13,29 +13,26 @@ This project aims to:
 - Evaluate model performance and explainability through feature importance analysis and case studies.
 
 ---
-
-bike-flow-estimate/
-├── data/                      # Raw and processed datasets (road network, bike flow data)
-│
-├── notebooks/                 # Jupyter notebooks for experiments and analysis
-│   ├── network-construction.ipynb          # Network construction and feature/target assignment
-│   ├── baseline-models.ipynb               # Baseline model experiments (requires constructed networks)
-│   ├── case-study.ipynb                    # Reproduces case study from Section 5.6 of the thesis
-│   ├── dataset-splitting.ipynb             # Splits data into subsets with selected primary features
-│   ├── eda-plots.ipynb                     # Visualizes feature plots from Section 3 of the thesis
-│   ├── feature-plot-visualizer.ipynb       # Replicates feature presence table (Appendix A)
-│   ├── GNN_explainer_classification.ipynb  # Explains features in GNN classification models
-│   ├── GNN_explainer_regression.ipynb      # Explains features in GNN regression models
-│   ├── graph_explanations.ipynb            # Visualizes feature importance scores (scripts/explainer.py)
-│   ├── model-runs.ipynb                    # Visualizes model results from Weights & Biases exports
-│   ├── n2v_baseline.ipynb                  # Node2Vec baseline experiments from the thesis
-│
-├── scripts/                   # Python scripts for data processing, training, and explainability
-│   ├── bike-functions.py                  # Functions for working with OSMNX, NetworkX, and PyTorch Geometric
-│   ├── models.py                          # Model architectures from the thesis
-│   └── tg_functions.py                    # Training and evaluation utilities for PyTorch Geometric
-│
-├── requirements.txt          # Python dependencies
-├── docker/                   # Containerization files for reproducible training environments
-└── README.md                 # This file
+## Repository Structure
+bike-flow-estimate/ <br>
+├── data/ # Contains raw and processed datasets (e.g., road network, bike flow data) <br>
+├── notebooks/ # Jupyter notebooks for exploration, experiments, and visualization <br>
+│ ├── network-construction.ipynb # Construction of networks and assignment of features + target variable <br>
+│ ├── baseline-models.ipynb # Running of baseline models (requires constructed networks)  <br>
+│ ├── case-study.ipynb # Notebook for replication of case study from section 5.6 from thesis paper  <br>
+│ ├── dataset-splitting.ipynb # Notebook for splitting into subsets of desired primary features (and replicate feature-sets from study) <br>
+│ ├── eda-plots.ipynb # Notebook to visualize and replicate feature plots from section 3 in the thesis paper <br>
+│ ├── feature-plot-visualizer.ipynb # Notebook to replicate the feature presence table from appendix A <br>
+│ ├── GNN_explainer_classification.ipynb # Notebook to explain features of GNN models trained on classification tasks <br>
+│ ├── GNN_explainer_regression.ipynb # Notebook to explain features of GNN models trained on regression tasks <br>
+│ ├── graph_explanations.ipynb # Notebook to visualize the feature importance scores calculated in script "scripts/explainer.py" <br>
+│ ├── model-runs.ipynb # Notebook to visualize the results of models based on wandb results export <br>
+│ ├── n2v_baseline.ipynb # Notebook to calculate the N2V model from the thesis paper <br>
+├── scripts/ # Python scripts for preprocessing, training, evaluation, and explainability <br>
+│ ├── bike-functions.py # Script containing various composite functions of OSMNX, NX and Torch-geometric used mainly to handle and construct graphs <br>
+│ ├── models.py # Script containing the model architectures used in the thesis paper <br>
+│ ├── tg_functions.py # Torch-geometric based functions to handle the training and testing of models <br>
+├── requirements.txt # Python dependencies <br>
+├── docker # Container directory for training and saving models in same ot similar data <br>
+└── README.md # This file <br> 
 
