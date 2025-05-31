@@ -40,3 +40,45 @@ bike-flow-estimate/ <br>
 │ ├── dockerfile # Dockerfile used to create container usable to run models 
 └── README.md # This file 
 ```
+
+## Using Docker
+
+Navigate to the docker/ folder and build the container:
+```
+cd docker
+docker build -t bike-flow-estimate .
+```
+
+Then run the container:
+```
+docker run -it --rm bike-flow-estimate
+```
+
+
+## Data
+
+The project relies on data about the road network, bike flow, and relevant features. Due to potential licensing or privacy restrictions, this data is **not included** in the repository. However, you can **recreate or obtain the data** as follows:
+
+1. **Road Network**  
+   - Source: [OpenStreetMap](https://www.openstreetmap.org/)  
+   - Recommended extraction: Use the [OSMnx](https://github.com/gboeing/osmnx) Python package to download the road network for Copenhagen.
+
+2. **Bike Flow Data**  
+   - Source: City of Copenhagen Open Data Portal or relevant bike counting stations.  
+   - Download the bike flow data in CSV format or via API if available.
+
+3. **Node Features**  
+   - Combine the road network and bike flow data using the preprocessing steps defined in `scripts/bike-functions.py` and related notebooks.  
+
+4. **Data Preparation**  
+   - Use the notebooks (e.g., `notebooks/network-construction.ipynb`) and scripts to preprocess and merge the datasets into the format required for model training.
+
+### Expected Directory Structure
+Once the data is prepared, it should be placed in the following structure:  
+
+
+### Contact
+
+For questions, please contact:
+- Christian Hugo Rasmussen (christian.hugo.rasmussen@gmail.com)
+- Manuel Knepper (manuel.knepper@gmx.net)
