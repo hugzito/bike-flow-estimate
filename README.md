@@ -32,7 +32,10 @@ bike-flow-estimate/ <br>
 │ ├── bike-functions.py # Script containing various composite functions of OSMNX, NX and Torch-geometric used mainly to handle and construct graphs <br>
 │ ├── models.py # Script containing the model architectures used in the thesis paper <br>
 │ ├── tg_functions.py # Torch-geometric based functions to handle the training and testing of models <br>
+│ ├── script.py # The main script used inside the docker container to train the GNN-models <br>
 ├── requirements.txt # Python dependencies <br>
-├── docker # Container directory for training and saving models in same ot similar data <br>
+├── docker # Container directory for training and saving models in same or similar data <br>
+│ ├── script.py # The main script used inside the docker container to train the GNN-models <br>
+│ ├── dockerfile # Dockerfile used to create container usable to run models <br>
 └── README.md # This file <br> 
 
