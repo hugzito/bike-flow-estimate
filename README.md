@@ -1,2 +1,38 @@
 # bike-flow-estimate
 Code Repository for Master's Thesis by Christian Hugo Rasmussen &amp; Manuel Knepper. 
+
+This repository contains the code, data, and documentation for my master's thesis project, which focuses on **predicting and analyzing bike flow in the city of Copenhagen** using **graph learning techniques** such as **Graph Convolutional Networks (GCN)** and **Graph Attention Networks (GAT)**.
+
+---
+
+## Project Overview
+
+This project aims to:
+- Model and predict bike flow across the urban road network in Copenhagen.
+- Leverage graph-based deep learning architectures (GCN and GAT) to capture both topological and feature-based dependencies.
+- Evaluate model performance and explainability through feature importance analysis and case studies.
+
+---
+
+## Repository Structure
+bike-flow-estimate/ <br>
+├── data/ # Contains raw and processed datasets (e.g., road network, bike flow data) <br>
+├── notebooks/ # Jupyter notebooks for exploration, experiments, and visualization <br>
+│ ├── network-construction.ipynb # Construction of networks and assignment of features + target variable <br>
+│ ├── baseline-models.ipynb # Running of baseline models (requires constructed networks)  <br>
+│ ├── case-study.ipynb # Notebook for replication of case study from section 5.6 from thesis paper  <br>
+│ ├── dataset-splitting.ipynb # Notebook for splitting into subsets of desired primary features (and replicate feature-sets from study) <br>
+│ ├── eda-plots.ipynb # Notebook to visualize and replicate feature plots from section 3 in the thesis paper <br>
+│ ├── feature-plot-visualizer.ipynb # Notebook to replicate the feature presence table from appendix A <br>
+│ ├── GNN_explainer_classification.ipynb # Notebook to explain features of GNN models trained on classification tasks <br>
+│ ├── GNN_explainer_regression.ipynb # Notebook to explain features of GNN models trained on regression tasks <br>
+│ ├── graph_explanations.ipynb # Notebook to visualize the feature importance scores calculated in script "scripts/explainer.py" <br>
+│ ├── model-runs.ipynb # Notebook to visualize the results of models based on wandb results export <br>
+│ ├── n2v_baseline.ipynb # Notebook to calculate the N2V model from the thesis paper <br>
+├── scripts/ # Python scripts for preprocessing, training, evaluation, and explainability <br>
+│ ├── bike-functions.py # Script containing various composite functions of OSMNX, NX and Torch-geometric used mainly to handle and construct graphs <br>
+│ ├── models.py # Script containing the model architectures used in the thesis paper <br>
+│ ├── tg_functions.py # Torch-geometric based functions to handle the training and testing of models <br>
+├── requirements.txt # Python dependencies <br>
+├── docker # Container directory for training and saving models in same ot similar data <br>
+└── README.md # This file <br> 
