@@ -1,7 +1,7 @@
 # bike-flow-estimate
 Code Repository for Master's Thesis by Christian Hugo Rasmussen &amp; Manuel Knepper. 
 
-This repository contains the code, data, and documentation for my master's thesis project, which focuses on **predicting and analyzing bike flow in the city of Copenhagen** using **graph learning techniques** such as **Graph Convolutional Networks (GCN)** and **Graph Attention Networks (GAT)**.
+This repository contains the code, data, and documentation for our master's thesis project, which focuses on **predicting and analyzing bike flow in the city of Copenhagen** using **graph learning techniques** such as **Graph Convolutional Networks (GCN)** and **Graph Attention Networks (GAT)**.
 
 ---
 
